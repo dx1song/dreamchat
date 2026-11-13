@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史记录 - 星梦智能助手</title>
+<style>
+:root{
+  --bg:#070b16; --bg2:#0b1122;
+  --card:#0e1730; --card2:#0a1226;
+  --line:#1d2a4d; --line2:#2b3c68;
+  --txt:#e6ecff; --txt2:#93a0c8; --txt3:#5c6a95;
+  --ac:#5b8cff; --ac2:#8b5cf6;
+  --grad:linear-gradient(135deg,#5b8cff,#8b5cf6);
+  --ok:#3ddc97; --warn:#f5c76b; --danger:#ff6b81;
+  --r:14px; --rs:9px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background:var(--bg); color:var(--txt);
+  min-height:100vh; position:relative;
+  background-image:
+    radial-gradient(900px 500px at 15% -10%,rgba(91,140,255,.10),transparent 60%),
+    radial-gradient(1000px 600px at 110% 110%,rgba(139,92,246,.10),transparent 60%);
+}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{position:absolute;background:#cdd8ff;border-radius:50%;opacity:.35}
+
+.back{position:fixed;left:48px;top:40px;z-index:6;display:flex;align-items:center;gap:6px;color:var(--txt2);
+  background:none;border:none;font-family:inherit;font-size:14px;cursor:pointer}
+.back:hover{color:var(--txt)}
+
+.content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+  padding:80px 20px 48px}
+.phead{text-align:center;margin-bottom:28px}
+.phead h2{font-size:26px;font-weight:500;letter-spacing:3px;margin-bottom:6px}
+.phead p{font-size:13px;color:var(--txt3);letter-spacing:1px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.fcard2{width:780px;max-width:100%;padding:30px 34px}
+
+/* tab */
+.tabs{display:flex;gap:6px;background:var(--card2);border-radius:10px;padding:5px;margin-bottom:22px}
+.tab{flex:1;height:40px;border:none;border-radius:7px;background:transparent;color:var(--txt2);
+  font-family:inherit;font-size:15px;cursor:pointer;transition:.2s}
+.tab.on{background:var(--grad);color:#fff}
+
+/* 工具栏（清空） */
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;
+  font-family:inherit;font-size:14px;border-radius:var(--rs);height:38px;padding:0 20px;transition:.2s}
+.btn-danger{background:transparent;border:1px solid rgba(255,107,129,.4);color:var(--danger)}
+.btn-danger:hover{background:rgba(255,107,129,.12);border-color:var(--danger)}
+
+/* 列表 */
+.list{display:flex;flex-direction:column;gap:12px}
+.rec-item{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;
+  border:1px solid var(--line);border-radius:var(--rs);cursor:pointer;transition:.2s;background:var(--card2)}
+.rec-item:hover{border-color:var(--ac);transform:translateY(-1px)}
+.rec-item .left{display:flex;align-items:center;gap:14px}
+.rec-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rec-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.rec-date{font-size:12px;color:var(--txt3)}
+.rec-arrow{color:var(--txt3);font-size:18px}
+
+/* 空状态 */
+.empty{display:none;text-align:center;padding:60px 20px;color:var(--txt3);font-size:14px}
+.empty.on{display:block}
+
+/* 分页 */
+.pagination{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:22px}
+.page-btn{background:transparent;border:1px solid var(--line2);color:var(--txt2);font-family:inherit;
+  font-size:13px;padding:8px 16px;border-radius:16px;cursor:pointer;transition:.2s}
+.page-btn:hover{color:var(--txt);border-color:var(--ac)}
+.page-btn:disabled{opacity:.4;cursor:not-allowed}
+.page-info{font-size:13px;color:var(--txt2)}
+
+/* 加载 */
+.loading{display:none;justify-content:center;padding:40px 0}
+.loading.on{display:flex}
+.spin{width:40px;height:40px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--ac);
+  animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 模态框 */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;
+  z-index:50;padding:20px}
+.modal.on{display:flex}
+.modal-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  width:680px;max-width:100%;max-height:85vh;overflow-y:auto;padding:30px 34px;position:relative}
+.modal-close{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--txt3);
+  font-size:22px;cursor:pointer;font-family:inherit;line-height:1}
+.modal-close:hover{color:var(--txt)}
+
+/* 详情内容 */
+.rhead{text-align:center;margin-bottom:22px}
+.rbadge{display:inline-block;padding:7px 20px;border-radius:16px;font-size:14px;
+  background:rgba(91,140,255,.12);color:var(--ac);border:1px solid rgba(91,140,255,.3);margin-bottom:14px}
+.rbadge.dream{background:rgba(139,92,246,.14);color:#a78bfa;border-color:rgba(139,92,246,.35)}
+.rhead h3{font-size:20px;font-weight:500;letter-spacing:2px;margin-bottom:6px}
+.rhead .d{font-size:12px;color:var(--txt3)}
+.rblk{margin-bottom:16px;padding:16px 20px;background:var(--card2);border-radius:var(--rs);border:1px solid var(--line)}
+.rblk h4{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.rblk h4::before{content:"";width:3px;height:13px;background:var(--grad);border-radius:2px}
+.rblk p{font-size:14px;line-height:1.9;color:var(--txt2)}
+.fortune{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fitem{padding:12px 14px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px}
+.fitem .fn{font-size:12px;color:var(--txt3);margin-bottom:4px}
+.fitem .fs{color:var(--warn);font-size:13px;letter-spacing:2px;margin-bottom:4px}
+.fitem .fd{font-size:13px;color:var(--txt2);line-height:1.6}
+.lucky{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lbox{padding:12px 14px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px}
+.lbox .ln{font-size:12px;color:var(--txt3);margin-bottom:6px}
+.lbox .lv{font-size:18px;font-weight:600;display:flex;align-items:center;gap:9px}
+.cdot{width:20px;height:20px;border-radius:50%}
+.alist{list-style:none}
+.alist li{font-size:14px;line-height:1.8;color:var(--txt2);padding:4px 0;display:flex;gap:10px}
+.alist li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ac);margin-top:10px;flex-shrink:0}
+.verdict{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:8px}
+.verdict .vl{font-size:13px;color:var(--txt3)}
+.verdict .vv{font-size:18px;font-weight:600}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;color:var(--txt2)}
+.meta .k{color:var(--txt3)}
+.meta .full{grid-column:1/-1}
+
+/* 删除按钮 */
+.modal-acts{display:flex;gap:14px;margin-top:22px}
+.modal-acts .btn{flex:1;height:46px;font-size:15px}
+.btn-p{background:var(--grad);color:#fff;box-shadow:0 6px 20px rgba(91,140,255,.28)}
+.btn-p:hover{filter:brightness(1.1)}
+.btn-g{background:transparent;border:1px solid var(--line2);color:var(--txt2)}
+.btn-g:hover{color:var(--txt);border-color:var(--ac)}
+.btn-del{background:rgba(255,107,129,.12);border:1px solid rgba(255,107,129,.4);color:var(--danger)}
+.btn-del:hover{background:rgba(255,107,129,.2);border-color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<button type="button" class="back" id="btn-back">← 返回主页</button>
+
+<div class="content">
+  <div class="phead"><h2>历史记录</h2><p>回看你过去的星座分析与解梦记录</p></div>
+
+  <div class="card fcard2">
+    <!-- tab -->
+    <div class="tabs">
+      <button type="button" class="tab on" data-type="astro" id="tab-astro">星座分析</button>
+      <button type="button" class="tab" data-type="dream" id="tab-dream">周公解梦</button>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn btn-danger" id="btn-clear">清空全部</button>
+    </div>
+
+    <!-- 加载 -->
+    <div class="loading" id="loading"><div class="spin"></div></div>
+
+    <!-- 列表 -->
+    <div class="list" id="list"></div>
+
+    <!-- 空状态 -->
+    <div class="empty" id="empty">暂无历史记录</div>
+
+    <!-- 分页 -->
+    <div class="pagination" id="pagination">
+      <button type="button" class="page-btn" id="btn-prev">上一页</button>
+      <span class="page-info" id="page-info">第 1 页</span>
+      <button type="button" class="page-btn" id="btn-next">下一页</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <button type="button" class="modal-close" id="modal-close">×</button>
+    <div id="modal-body"></div>
+    <div class="modal-acts" id="modal-acts">
+      <button type="button" class="btn btn-del" id="btn-delete">删 除</button>
+      <button type="button" class="btn btn-p" id="btn-close">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 星空背景 ===== */
+(function () {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2 + 1;
+    s.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;left:' + Math.random() * 100 + '%;top:' +
+      Math.random() * 100 + '%;opacity:' + (Math.random() * .4 + .15);
+    c.appendChild(s);
+  }
+})();
+
+const $ = (id) => document.getElementById(id);
+
+/* ===== 登录态检查 ===== */
+function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+if (!getToken()) {
+  window.location.href = 'login.html';
+}
+
+/* ===== 统一请求 ===== */
+async function request(path, options = {}) {
+  const res = await fetch('/api' + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken(),
+      ...(options.headers || {})
+    }
+  });
+  const data = await res.json();
+  if (data.code === 40101) {
+    window.location.href = 'login.html';
+  }
+  return data;
+}
+
+/* ===== 状态 ===== */
+let currentType = 'astro';
+let currentPage = 1;
+const SIZE = 20;
+let currentDetailId = null;
+
+/* ===== tab 切换 ===== */
+function switchTab(type) {
+  currentType = type;
+  currentPage = 1;
+  $('tab-astro').classList.toggle('on', type === 'astro');
+  $('tab-dream').classList.toggle('on', type === 'dream');
+  loadList();
+}
+$('tab-astro').onclick = () => switchTab('astro');
+$('tab-dream').onclick = () => switchTab('dream');
+
+/* ===== 加载列表 ===== */
+async function loadList() {
+  $('list').innerHTML = '';
+  $('empty').classList.remove('on');
+  $('loading').classList.add('on');
+  $('pagination').style.visibility = 'hidden';
+
+  try {
+    const data = await request('/history?type=' + currentType + '&page=' + currentPage + '&size=' + SIZE);
+    $('loading').classList.remove('on');
+    if (data.code !== 0) {
+      $('empty').textContent = data.message || '加载失败';
+      $('empty').classList.add('on');
+      return;
+    }
+    const items = data.data.items || [];
+    if (items.length === 0) {
+      $('empty').textContent = '暂无历史记录';
+      $('empty').classList.add('on');
+      $('pagination').style.visibility = 'hidden';
+      return;
+    }
+    $('list').innerHTML = items.map(it => renderItem(it)).join('');
+    // 绑定点击
+    document.querySelectorAll('.rec-item').forEach(el => {
+      el.onclick = () => openDetail(el.dataset.id);
+    });
+    renderPagination(data.data);
+  } catch (e) {
+    $('loading').classList.remove('on');
+    $('empty').textContent = '网络错误，请稍后重试';
+    $('empty').classList.add('on');
+  }
+}
+
+function renderItem(it) {
+  const isAstro = currentType === 'astro';
+  const icon = isAstro
+    ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>'
+    : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
+  const name = isAstro ? it.zodiac : it.dream_keyword;
+  return '<div class="rec-item" data-id="' + it.id + '">' +
+    '<div class="left">' +
+      '<div class="rec-icon" style="background:' + (isAstro ? 'rgba(91,140,255,.13)' : 'rgba(139,92,246,.15)') + '">' + icon + '</div>' +
+      '<div><div class="rec-name">' + name + '</div>' +
+      '<div class="rec-date">' + (it.created_at || '').slice(0, 10) + '</div></div>' +
+    '</div>' +
+    '<span class="rec-arrow">›</span>' +
+  '</div>';
+}
+
+function renderPagination(data) {
+  const totalPages = Math.ceil(data.total / data.size) || 1;
+  $('page-info').textContent = '第 ' + data.page + ' / ' + totalPages + ' 页';
+  $('btn-prev').disabled = data.page <= 1;
+  $('btn-next').disabled = data.page >= totalPages;
+  $('pagination').style.visibility = 'visible';
+}
+
+$('btn-prev').onclick = () => { if (currentPage > 1) { currentPage--; loadList(); } };
+$('btn-next').onclick = () => { currentPage++; loadList(); };
+
+/* ===== 详情 ===== */
+async function openDetail(id) {
+  currentDetailId = id;
+  try {
+    const data = await request('/history/' + id + '?type=' + currentType);
+    if (data.code !== 0) {
+      alert(data.message || '记录不存在');
+      return;
+    }
+    const d = data.data;
+    $('modal-body').innerHTML = d.type === 'astro' ? renderAstroDetail(d) : renderDreamDetail(d);
+    $('modal').classList.add('on');
+  } catch (e) {
+    alert('网络错误，请稍后重试');
+  }
+}
+
+const COLOR_MAP = {
+  '珊瑚红': '#ff7a59', '天蓝': '#5b8cff', '蔚蓝': '#5b8cff', '翠绿': '#3ddc97',
+  '金黄': '#f5c76b', '金色': '#f5c76b', '紫色': '#8b5cf6', '紫罗兰': '#8b5cf6',
+  '粉色': '#ff6b81', '橙色': '#ff9f43', '白色': '#e6ecff', '灰色': '#93a0c8'
+};
+const VERDICT_STYLE = {
+  '好梦': { bg: 'rgba(61,220,151,.08)', border: 'rgba(61,220,151,.25)', color: 'var(--ok)' },
+  '普通': { bg: 'rgba(245,199,107,.08)', border: 'rgba(245,199,107,.25)', color: 'var(--warn)' },
+  '需要注意': { bg: 'rgba(255,107,129,.08)', border: 'rgba(255,107,129,.25)', color: 'var(--danger)' }
+};
+
+function renderAstroDetail(d) {
+  const r = d.report || {};
+  const f = r.fortune || {};
+  const dims = [
+    { name: '事业', v: f.career }, { name: '感情', v: f.love },
+    { name: '健康', v: f.health }, { name: '财运', v: f.wealth }
+  ].filter(x => x.v);
+  let html = '<div class="rhead">' +
+    '<span class="rbadge">' + d.zodiac + '</span>' +
+    '<h3>星座分析报告</h3>' +
+    '<div class="d">' + (d.created_at || '').slice(0, 10) + '</div></div>';
+
+  // 性格特点 + 近期运势合并为一个区块，同级展示
+  let analysisHtml = '';
+  if (r.personality) {
+    analysisHtml += '<p style="margin-bottom:14px">' + r.personality + '</p>';
+  }
+  if (dims.length > 0) {
+    analysisHtml += '<div class="fortune">' +
+      dims.map(x => '<div class="fitem"><div class="fn">' + x.name + '</div>' +
+        '<div class="fs">' + (x.v.level || '') + '</div>' +
+        '<div class="fd">' + (x.v.desc || '') + '</div></div>').join('') +
+    '</div>';
+  }
+  if (analysisHtml) {
+    html += '<div class="rblk"><h4>性格与运势</h4>' + analysisHtml + '</div>';
+  }
+  html += '<div class="rblk"><h4>幸运色 / 幸运数字</h4><div class="lucky">' +
+    '<div class="lbox"><div class="ln">幸运色</div><div class="lv">' +
+      (r.lucky_color || '') + '</div></div>' +
+    '<div class="lbox"><div class="ln">幸运数字</div><div class="lv">' + (r.lucky_number || '') + '</div></div>' +
+  '</div></div>';
+  html += '<div class="rblk"><h4>建议和提醒</h4><ul class="alist">' +
+    (r.advice || []).map(a => '<li>' + a + '</li>').join('') + '</ul></div>';
+  html += '<div class="rblk"><h4>本次输入</h4><div class="meta">' +
+    '<div><span class="k">出生日期：</span>' + (d.birth_date || '') + '</div>' +
+    '<div><span class="k">性别：</span>' + (d.gender || '') + '</div>' +
+    '<div><span class="k">情感状态：</span>' + (d.relationship || '') + '</div>' +
+    '<div><span class="k">职业：</span>' + (d.job || '') + '</div>' +
+    '<div class="full"><span class="k">关注点：</span>' + (d.focuses || []).join('、') + '</div>' +
+  '</div></div>';
+  return html;
+}
+
+function renderDreamDetail(d) {
+  const r = d.report || {};
+  const interpretations = (r.interpretations || []).map(it =>
+    '<div class="rblk"><h4>针对性解读（' + it.focus + '）</h4><p>' + it.content + '</p></div>'
+  ).join('');
+  const verdict = r.verdict || '普通';
+  const vs = VERDICT_STYLE[verdict] || VERDICT_STYLE['普通'];
+  return '<div class="rhead">' +
+    '<span class="rbadge dream">梦境关键词：' + d.dream_keyword + '</span>' +
+    '<h3>梦境解读报告</h3>' +
+    '<div class="d">' + (d.created_at || '').slice(0, 10) + '</div></div>' +
+    '<div class="rblk"><h4>梦境核心寓意</h4><p>' + (r.core_meaning || '') + '</p></div>' +
+    interpretations +
+    '<div class="rblk"><h4>现实生活建议</h4><ul class="alist">' +
+      (r.advice || []).map(a => '<li>' + a + '</li>').join('') + '</ul></div>' +
+    '<div class="rblk"><h4>整体评价</h4>' +
+      '<div class="verdict" style="background:' + vs.bg + ';border:1px solid ' + vs.border + '">' +
+        '<span class="vl">综合评定</span><span class="vv" style="color:' + vs.color + '">' + verdict + '</span>' +
+      '</div></div>' +
+    '<div class="rblk"><h4>本次输入</h4><div class="meta">' +
+      '<div class="full"><span class="k">梦境内容：</span>' + (d.dream_content || '') + '</div>' +
+      '<div><span class="k">做梦时间：</span>' + (d.dream_time || '') + '</div>' +
+      '<div><span class="k">性别：</span>' + (d.gender || '') + '</div>' +
+      '<div><span class="k">年龄：</span>' + (d.age || '') + '</div>' +
+      '<div><span class="k">职业：</span>' + (d.job || '') + '</div>' +
+      '<div><span class="k">近期状态：</span>' + (d.mood || '未填写') + '</div>' +
+      '<div class="full"><span class="k">关注点：</span>' + (d.focuses || []).join('、') + '</div>' +
+    '</div></div>';
+}
+
+/* ===== 删除单条 ===== */
+$('btn-delete').onclick = async () => {
+  if (!currentDetailId) return;
+  if (!confirm('确定删除该记录吗？删除后不可恢复。')) return;
+  try {
+    const data = await request('/history/' + currentDetailId + '?type=' + currentType, { method: 'DELETE' });
+    if (data.code === 0) {
+      closeModal();
+      loadList();
+    } else {
+      alert(data.message || '删除失败');
+    }
+  } catch (e) {
+    alert('网络错误，请稍后重试');
+  }
+};
+
+/* ===== 清空全部 ===== */
+$('btn-clear').onclick = async () => {
+  const label = currentType === 'astro' ? '星座分析' : '周公解梦';
+  if (!confirm('确定清空全部' + label + '记录吗？删除后不可恢复。')) return;
+  try {
+    const data = await request('/history?type=' + currentType, { method: 'DELETE' });
+    if (data.code === 0) {
+      currentPage = 1;
+      loadList();
+    } else {
+      alert(data.message || '清空失败');
+    }
+  } catch (e) {
+    alert('网络错误，请稍后重试');
+  }
+};
+
+/* ===== 模态框关闭 ===== */
+function closeModal() {
+  $('modal').classList.remove('on');
+  currentDetailId = null;
+}
+$('modal-close').onclick = closeModal;
+$('btn-close').onclick = closeModal;
+$('modal').onclick = (e) => { if (e.target === $('modal')) closeModal(); };
+
+/* ===== 返回主页 ===== */
+$('btn-back').onclick = () => { window.location.href = 'index.html'; };
+
+/* ===== 初始化加载 ===== */
+loadList();
+</script>
+</body>
+</html>

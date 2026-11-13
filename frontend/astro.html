@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星座分析 - 星梦智能助手</title>
+<style>
+:root{
+  --bg:#070b16; --bg2:#0b1122;
+  --card:#0e1730; --card2:#0a1226;
+  --line:#1d2a4d; --line2:#2b3c68;
+  --txt:#e6ecff; --txt2:#93a0c8; --txt3:#5c6a95;
+  --ac:#5b8cff; --ac2:#8b5cf6;
+  --grad:linear-gradient(135deg,#5b8cff,#8b5cf6);
+  --ok:#3ddc97; --warn:#f5c76b; --danger:#ff6b81;
+  --r:14px; --rs:9px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background:var(--bg); color:var(--txt);
+  min-height:100vh; position:relative;
+  background-image:
+    radial-gradient(900px 500px at 15% -10%,rgba(91,140,255,.10),transparent 60%),
+    radial-gradient(1000px 600px at 110% 110%,rgba(139,92,246,.10),transparent 60%);
+}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{position:absolute;background:#cdd8ff;border-radius:50%;opacity:.35}
+
+/* 返回按钮 */
+.back{position:fixed;left:48px;top:40px;z-index:6;display:flex;align-items:center;gap:6px;color:var(--txt2);
+  background:none;border:none;font-family:inherit;font-size:14px;cursor:pointer}
+.back:hover{color:var(--txt)}
+
+/* 内容区 */
+.content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+  padding:80px 20px 48px}
+.phead{text-align:center;margin-bottom:28px}
+.phead h2{font-size:26px;font-weight:500;letter-spacing:3px;margin-bottom:6px}
+.phead p{font-size:13px;color:var(--txt3);letter-spacing:1px}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.fcard2{width:780px;max-width:100%;padding:34px 40px}
+
+/* 表单 */
+.sec{font-size:13px;color:var(--ac);letter-spacing:2px;margin:4px 0 16px;display:flex;align-items:center;gap:8px}
+.sec::before{content:"";width:14px;height:2px;background:var(--grad);border-radius:2px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13px;color:var(--txt2);margin-bottom:8px}
+.req{color:var(--ac);margin-left:2px}
+.in,.sel{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:var(--rs);
+  color:var(--txt);font-family:inherit;font-size:15px;height:44px;padding:0 14px;outline:none;transition:.2s}
+.in::placeholder{color:var(--txt3)}
+.in:focus,.sel:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(91,140,255,.15)}
+.sel{appearance:none;cursor:pointer;padding-right:36px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2393a0c8' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center}
+.sel option{background:#101a33}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{padding:8px 18px;border-radius:18px;border:1px solid var(--line2);color:var(--txt2);
+  font-size:14px;cursor:pointer;user-select:none;transition:.18s}
+.chip:hover{color:var(--txt);border-color:var(--ac)}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent}
+.err{display:none;margin-top:6px;font-size:12px;color:var(--danger)}
+.err.show{display:block}
+
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;
+  font-family:inherit;font-size:16px;border-radius:var(--rs);height:46px;padding:0 28px;transition:.2s;color:var(--txt)}
+.btn-p{background:var(--grad);color:#fff;box-shadow:0 6px 20px rgba(91,140,255,.28)}
+.btn-p:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-p:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-g{background:transparent;border:1px solid var(--line2);color:var(--txt2)}
+.btn-g:hover{color:var(--txt);border-color:var(--ac)}
+.btn-lg{height:52px;font-size:17px;letter-spacing:2px}
+.acts{margin-top:26px;display:flex;gap:14px}
+.acts.center{justify-content:center}
+
+/* 加载 */
+.loading{display:none;flex-direction:column;align-items:center;gap:24px;padding:56px 0}
+.loading.on{display:flex}
+.spin{width:58px;height:58px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--ac);
+  animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading .lt{font-size:15px;color:var(--txt2);letter-spacing:2px}
+.loading .ls{font-size:12px;color:var(--txt3)}
+
+/* 结果 */
+.result{display:none}
+.result.on{display:block}
+.rhead{text-align:center;margin-bottom:26px}
+.rbadge{display:inline-block;padding:7px 20px;border-radius:16px;font-size:14px;
+  background:rgba(91,140,255,.12);color:var(--ac);border:1px solid rgba(91,140,255,.3);margin-bottom:14px}
+.rhead h3{font-size:22px;font-weight:500;letter-spacing:2px;margin-bottom:6px}
+.rhead .d{font-size:12px;color:var(--txt3)}
+.rblk{margin-bottom:18px;padding:18px 22px;background:var(--card2);border-radius:var(--rs);border:1px solid var(--line)}
+.rblk h4{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.rblk h4::before{content:"";width:3px;height:13px;background:var(--grad);border-radius:2px}
+.rblk p{font-size:14px;line-height:1.9;color:var(--txt2)}
+.fortune{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fitem{padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px}
+.fitem .fn{font-size:12px;color:var(--txt3);margin-bottom:5px}
+.fitem .fs{color:var(--warn);font-size:13px;letter-spacing:2px;margin-bottom:5px}
+.fitem .fd{font-size:13px;color:var(--txt2);line-height:1.6}
+.lucky{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lbox{padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px}
+.lbox .ln{font-size:12px;color:var(--txt3);margin-bottom:7px}
+.lbox .lv{font-size:19px;font-weight:600;display:flex;align-items:center;gap:9px}
+.cdot{width:20px;height:20px;border-radius:50%}
+.alist{list-style:none}
+.alist li{font-size:14px;line-height:1.8;color:var(--txt2);padding:4px 0;display:flex;gap:10px}
+.alist li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ac);margin-top:10px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<button type="button" class="back" id="btn-back">← 返回主页</button>
+
+<div class="content">
+  <div class="phead"><h2>星座分析</h2><p>填写个人信息，生成专属星座报告</p></div>
+
+  <div class="card fcard2">
+    <!-- 表单 -->
+    <div id="astro-form">
+      <div class="sec">个人信息</div>
+      <div class="field">
+        <label>出生日期<span class="req">*</span></label>
+        <div class="grid3">
+          <select class="sel" id="sel-year"></select>
+          <select class="sel" id="sel-month"></select>
+          <select class="sel" id="sel-day"></select>
+        </div>
+        <div class="err" id="birth-err"></div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>性别<span class="req">*</span></label>
+          <select class="sel" id="sel-gender">
+            <option value="">请选择</option>
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
+          <div class="err" id="gender-err"></div>
+        </div>
+        <div class="field">
+          <label>情感状态<span class="req">*</span></label>
+          <select class="sel" id="sel-relationship">
+            <option value="">请选择</option>
+            <option value="单身">单身</option>
+            <option value="恋爱">恋爱</option>
+            <option value="已婚">已婚</option>
+            <option value="离异">离异</option>
+            <option value="丧偶">丧偶</option>
+            <option value="其他">其他</option>
+          </select>
+          <div class="err" id="relationship-err"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>职业身份<span class="req">*</span></label>
+        <input class="in" id="inp-job" placeholder="如：软件工程师 / 在校学生（50 字以内）" maxlength="50">
+        <div class="err" id="job-err"></div>
+      </div>
+      <div class="field">
+        <label>测算关注点<span class="req">*</span><span style="color:var(--txt3);font-size:12px;margin-left:6px">至少选择 1 项</span></label>
+        <div class="chips" id="chips">
+          <span class="chip" data-value="性格">性格</span>
+          <span class="chip" data-value="事业">事业</span>
+          <span class="chip" data-value="情感">情感</span>
+          <span class="chip" data-value="财运">财运</span>
+          <span class="chip" data-value="健康">健康</span>
+        </div>
+        <div class="err" id="focuses-err"></div>
+      </div>
+      <div class="acts">
+        <button type="button" class="btn btn-p btn-lg" style="flex:1" id="btn-submit">开始分析</button>
+        <button type="button" class="btn btn-g btn-lg" id="btn-cancel">取 消</button>
+      </div>
+    </div>
+
+    <!-- 加载 -->
+    <div class="loading" id="loading">
+      <div class="spin"></div>
+      <div class="lt">AI 正在生成星座报告</div>
+      <div class="ls">正在分析你的星象轨迹，请稍候…</div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<script>
+/* ===== 星空背景 ===== */
+(function () {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2 + 1;
+    s.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;left:' + Math.random() * 100 + '%;top:' +
+      Math.random() * 100 + '%;opacity:' + (Math.random() * .4 + .15);
+    c.appendChild(s);
+  }
+})();
+
+const $ = (id) => document.getElementById(id);
+
+/* ===== 登录态检查 ===== */
+function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+if (!getToken()) {
+  window.location.href = 'login.html';
+}
+
+/* ===== 初始化出生日期下拉（日随年月联动，避免非法日期） ===== */
+function isLeapYear(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+function daysInMonth(year, month) {
+  if (!year || !month) return 0;
+  const days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month === 2 && isLeapYear(year)) return 29;
+  return days[month - 1];
+}
+
+function updateDays() {
+  const year = parseInt($('sel-year').value) || 0;
+  const month = parseInt($('sel-month').value) || 0;
+  const d = $('sel-day');
+  const prev = d.value;
+  const max = daysInMonth(year, month);
+  d.innerHTML = '';
+  d.add(new Option('请选择日期', ''));
+  for (let i = 1; i <= max; i++) d.add(new Option(i + ' 日', i));
+  if (prev && max > 0 && parseInt(prev) <= max) d.value = prev;
+}
+
+(function () {
+  const y = $('sel-year'), m = $('sel-month');
+  y.add(new Option('请选择年份', ''));
+  for (let i = 2008; i >= 1970; i--) y.add(new Option(i + ' 年', i));
+  m.add(new Option('请选择月份', ''));
+  for (let i = 1; i <= 12; i++) m.add(new Option(i + ' 月', i));
+  y.onchange = updateDays;
+  m.onchange = updateDays;
+  updateDays();
+})();
+
+/* ===== 关注点多选 ===== */
+document.querySelectorAll('#chips .chip').forEach(ch => {
+  ch.onclick = () => {
+    ch.classList.toggle('on');
+    $('focuses-err').classList.remove('show');
+  };
+});
+
+/* ===== 错误提示工具 ===== */
+function showErr(id, msg) {
+  const el = $(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearAllErr() {
+  document.querySelectorAll('.err').forEach(e => e.classList.remove('show'));
+}
+
+/* ===== 统一请求（带 token） ===== */
+async function apiFetch(path, body) {
+  const res = await fetch('/api' + path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken()
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (data.code === 40101) {
+    window.location.href = 'login.html';
+  }
+  return data;
+}
+
+/* ===== 幸运色映射 ===== */
+const COLOR_MAP = {
+  '珊瑚红': '#ff7a59', '天蓝': '#5b8cff', '蔚蓝': '#5b8cff', '翠绿': '#3ddc97',
+  '金黄': '#f5c76b', '金色': '#f5c76b', '紫色': '#8b5cf6', '紫罗兰': '#8b5cf6',
+  '粉色': '#ff6b81', '橙色': '#ff9f43', '白色': '#e6ecff', '灰色': '#93a0c8'
+};
+function colorOf(name) {
+  return COLOR_MAP[name] || '#8b5cf6';
+}
+
+/* ===== 提交分析 ===== */
+$('btn-submit').onclick = async () => {
+  clearAllErr();
+
+  const year = $('sel-year').value;
+  const month = $('sel-month').value;
+  const day = $('sel-day').value;
+  const gender = $('sel-gender').value;
+  const relationship = $('sel-relationship').value;
+  const job = $('inp-job').value.trim();
+  const focuses = [...document.querySelectorAll('#chips .chip.on')].map(c => c.dataset.value);
+
+  let ok = true;
+  if (!year || !month || !day) { showErr('birth-err', '请选择完整的出生日期'); ok = false; }
+  if (!gender) { showErr('gender-err', '请选择性别'); ok = false; }
+  if (!relationship) { showErr('relationship-err', '请选择情感状态'); ok = false; }
+  if (!job) { showErr('job-err', '请填写职业身份'); ok = false; }
+  if (focuses.length === 0) { showErr('focuses-err', '请至少选择 1 个测算关注点'); ok = false; }
+  if (!ok) return;
+
+  const birthDate = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+
+  // 切换到 loading
+  $('astro-form').style.display = 'none';
+  $('result').classList.remove('on');
+  $('loading').classList.add('on');
+  $('btn-submit').disabled = true;
+
+  try {
+    const data = await apiFetch('/astro/analyze', {
+      birth_date: birthDate,
+      gender,
+      relationship,
+      job,
+      focuses
+    });
+    if (data.code === 0) {
+      renderResult(data.data);
+    } else {
+      alert(data.message || '生成失败，请稍后重试');
+      backForm();
+    }
+  } catch (err) {
+    alert('网络错误，请稍后重试');
+    backForm();
+  } finally {
+    $('btn-submit').disabled = false;
+  }
+};
+
+/* ===== 渲染结果 ===== */
+function renderResult(data) {
+  const report = data.report || {};
+  const fortune = report.fortune || {};
+  const dims = [
+    { name: '事业', v: fortune.career },
+    { name: '感情', v: fortune.love },
+    { name: '健康', v: fortune.health },
+    { name: '财运', v: fortune.wealth }
+  ].filter(d => d.v);
+  const advice = (report.advice || []).map(a => '<li>' + a + '</li>').join('');
+  let html = '<div class="rhead">' +
+    '<span class="rbadge">' + (data.zodiac || '') + '</span>' +
+    '<h3>你的专属星座报告</h3>' +
+    '<div class="d">生成日期：' + (data.created_at || '').slice(0, 10) + '</div>' +
+  '</div>';
+
+  // 性格特点 + 近期运势合并为一个区块，同级展示
+  let analysisHtml = '';
+  if (report.personality) {
+    analysisHtml += '<p style="margin-bottom:14px">' + report.personality + '</p>';
+  }
+  if (dims.length > 0) {
+    analysisHtml += '<div class="fortune">' +
+      dims.map(d => '<div class="fitem"><div class="fn">' + d.name + '</div>' +
+        '<div class="fs">' + (d.v.level || '') + '</div>' +
+        '<div class="fd">' + (d.v.desc || '') + '</div></div>').join('') +
+    '</div>';
+  }
+  if (analysisHtml) {
+    html += '<div class="rblk"><h4>性格与运势</h4>' + analysisHtml + '</div>';
+  }
+  html += '<div class="rblk"><h4>幸运色 / 幸运数字</h4><div class="lucky">' +
+    '<div class="lbox"><div class="ln">幸运色</div><div class="lv">' +
+      (report.lucky_color || '') + '</div></div>' +
+    '<div class="lbox"><div class="ln">幸运数字</div><div class="lv">' + (report.lucky_number || '') + '</div></div>' +
+  '</div></div>';
+  html += '<div class="rblk"><h4>建议和提醒</h4><ul class="alist">' + advice + '</ul></div>';
+  html += '<div class="acts center">' +
+    '<button type="button" class="btn btn-g" id="btn-again">重新分析</button>' +
+    '<button type="button" class="btn btn-p" id="btn-home2">返回主页</button>' +
+  '</div>';
+
+  $('result').innerHTML = html;
+  $('loading').classList.remove('on');
+  $('result').classList.add('on');
+
+  $('btn-again').onclick = backForm;
+  $('btn-home2').onclick = () => { window.location.href = 'index.html'; };
+}
+
+/* ===== 回到表单 ===== */
+function backForm() {
+  $('result').classList.remove('on');
+  $('loading').classList.remove('on');
+  $('astro-form').style.display = 'block';
+}
+
+/* ===== 取消 / 返回主页 ===== */
+$('btn-cancel').onclick = () => { window.location.href = 'index.html'; };
+$('btn-back').onclick = () => { window.location.href = 'index.html'; };
+</script>
+</body>
+</html>

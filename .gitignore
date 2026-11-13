@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 虚拟环境
+.venv/
+venv/
+
+# 环境变量（含敏感信息，如 API Key）
+.env
+
+# 数据库文件（含用户数据）
+*.db
+*.sqlite
+*.sqlite3
+test_auth.db
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db
